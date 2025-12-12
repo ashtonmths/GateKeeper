@@ -73,10 +73,29 @@ export const projectRouter = createTRPCRouter({
   unlock: protectedProcedure
     .input(projectIdSchema)
     .mutation(async ({ ctx, input }) => {
+      // First verify the project exists and user is the owner
+      const existingProject = await ctx.db.project.findUnique({
+        where: { id: input.projectId },
+        select: { ownerId: true },
+      });
+
+      if (!existingProject) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+
+      if (existingProject.ownerId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to modify this project",
+        });
+      }
+
       const project = await ctx.db.project.update({
         where: {
           id: input.projectId,
-          ownerId: ctx.session.user.id,
         },
         data: { locked: false },
         select: { id: true, locked: true },
@@ -89,10 +108,29 @@ export const projectRouter = createTRPCRouter({
   lock: protectedProcedure
     .input(projectIdSchema)
     .mutation(async ({ ctx, input }) => {
+      // First verify the project exists and user is the owner
+      const existingProject = await ctx.db.project.findUnique({
+        where: { id: input.projectId },
+        select: { ownerId: true },
+      });
+
+      if (!existingProject) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
+      }
+
+      if (existingProject.ownerId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to modify this project",
+        });
+      }
+
       const project = await ctx.db.project.update({
         where: {
           id: input.projectId,
-          ownerId: ctx.session.user.id,
         },
         data: { locked: true },
         select: { id: true, locked: true },
