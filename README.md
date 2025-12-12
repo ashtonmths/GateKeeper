@@ -15,19 +15,22 @@ A powerful project lock management system that provides API endpoints for contro
 
 - 🔐 **Lock Management** - Create and manage multiple projects with lock/unlock capabilities
 - 🌐 **Public API** - RESTful API endpoints for external projects to check lock status
-- 🔒 **Authentication** - Secure user authentication with NextAuth.js
+- 🔒 **Secure Authentication** - User authentication with NextAuth.js (only owners can modify projects)
 - ⚡ **Real-time Updates** - Instant UI updates when toggling lock status
-- 📊 **Dashboard** - Clean interface to view and manage all your projects
-- 🎨 **Modern UI** - Built with Next.js and Tailwind CSS
+- 📊 **Modern Dashboard** - Clean purple-themed interface to view and manage all your projects
+- 🎨 **Beautiful UI** - Solid color design with smooth animations and hover effects
+- 🛡️ **Authorization** - Only project owners can change lock status
+- 📋 **API Integration** - Easy-to-copy API endpoints for each project
 
 ## Tech Stack
 
 - [Next.js 15](https://nextjs.org) - React framework
 - [NextAuth.js 5](https://next-auth.js.org) - Authentication
-- [Prisma](https://prisma.io) - Database ORM
-- [tRPC](https://trpc.io) - Type-safe API
-- [Tailwind CSS](https://tailwindcss.com) - Styling
-- [PostgreSQL](https://postgresql.org) - Database
+- [Prisma](https://prisma.io) - Database ORM with PostgreSQL
+- [tRPC](https://trpc.io) - End-to-end typesafe API
+- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS framework
+- [PostgreSQL](https://postgresql.org) - Relational database
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
 
 ## Quick Start
 
@@ -51,14 +54,11 @@ npm install
 ```
 
 3. Set up environment variables:
-```bash
-cp .env.example .env
-```
 
-Edit `.env` and add your database URL and auth secrets:
+Create a `.env` file in the root directory:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/locksystem"
-NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_SECRET="your-secret-key-here"  # Generate with: openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3000"
 ```
 
@@ -67,12 +67,14 @@ NEXTAUTH_URL="http://localhost:3000"
 npm run db:push
 ```
 
+This will create all necessary tables in your PostgreSQL database.
+
 5. Start the development server:
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:3000` to see the application.
+Visit `http://localhost:3000` and create an account to get started!
 
 ## API Documentation
 
@@ -265,11 +267,25 @@ model Project {
   description String?
   ownerId     String
   owner       User     @relation(fields: [ownerId], references: [id])
-  locked      Boolean  @default(true)
+  locked      Boolean  @default(true)  // Projects locked by default
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  accounts      Account[]
+  projects      Project[]
+  sessions      Session[]
+}
 ```
+
+**Security Note:** Only the project owner (user who created the project) can lock/unlock their projects. The system enforces ownership verification on all mutation operations.
 
 ## Development
 
@@ -334,11 +350,28 @@ docker run -p 3000:3000 locksystem
 
 ## Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `NEXTAUTH_SECRET` | Secret for NextAuth.js | Yes |
-| `NEXTAUTH_URL` | Your application URL | Yes |
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes | `postgresql://user:password@localhost:5432/locksystem` |
+| `NEXTAUTH_SECRET` | Secret for NextAuth.js (generate with `openssl rand -base64 32`) | Yes | `your-secret-key-here` |
+| `NEXTAUTH_URL` | Your application URL | Yes | `http://localhost:3000` |
+
+## Security Features
+
+- ✅ **Password Hashing** - User passwords encrypted with bcrypt
+- ✅ **Session Management** - Secure session handling with NextAuth.js
+- ✅ **Owner Authorization** - Only project owners can modify lock status
+- ✅ **Protected Routes** - Authentication required for all project operations
+- ✅ **Type Safety** - Full TypeScript implementation with tRPC
+- ✅ **Input Validation** - Zod schemas validate all inputs
+
+## How It Works
+
+1. **User Registration** - Users create accounts with email and password
+2. **Create Projects** - Authenticated users can create projects (locked by default)
+3. **Manage Locks** - Only the project owner can toggle lock/unlock status
+4. **Public API** - External services check lock status via public API endpoint
+5. **Access Control** - Dashboard shows only user's own projects
 
 ## Use Cases
 
@@ -346,7 +379,8 @@ docker run -p 3000:3000 locksystem
 - **Feature Flags**: Control feature availability across environments
 - **Maintenance Mode**: Lock projects during maintenance windows
 - **Release Control**: Coordinate releases across multiple services
-- **CI/CD Integration**: Integrate with your CI/CD pipeline
+- **CI/CD Integration**: Integrate with your CI/CD pipeline to block automated deployments
+- **Emergency Stop**: Quickly lock all projects to prevent changes during incidents
 
 ## Contributing
 
